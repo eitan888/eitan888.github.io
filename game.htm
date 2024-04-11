@@ -27,11 +27,21 @@ button {
     padding: 5px 10px;
     cursor: pointer;
 }
+
+.blink {
+    animation: blink-animation 0.5s steps(5, start) infinite alternate;
+}
+
+@keyframes blink-animation {
+    to {
+        visibility: hidden;
+    }
+}
 </style>
 </head>
 <body>
 
-<h1 style="color: blue;">משחק נחש מספר</h1>
+<h1>משחק נחש מספר</h1>
 <p>נחש מספר בין 1 ל-100:</p>
 <input type="text" id="guessField" onkeypress="checkKeyPressed(event)">
 <button onclick="checkGuess()">שלח ניחוש</button>
@@ -78,6 +88,9 @@ function checkGuess() {
 
     // הצגת מספר הניחושים
     guessCountDisplay.textContent = `ניחוש מספר: ${guessCount}/10`;
+
+    // הוספת אנימציה לשדה הקלט
+    guessField.classList.add('blink');
 
     // בדיקה האם הניחוש נכון
     if (userGuess === randomNumber) {
