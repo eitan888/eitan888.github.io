@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guess the Number Game</title>
+<style>
+/* CSS styles */
+body {
+    font-family: Arial, sans-serif;
+}
+
+h1 {
+    text-align: center;
+}
+
+#message {
+    text-align: center;
+}
+
+input[type="text"] {
+    width: 100px;
+    margin-right: 10px;
+}
+
+button {
+    padding: 5px 10px;
+    cursor: pointer;
+}
+</style>
+</head>
+<body>
+
+<h1>Guess the Number Game</h1>
+<p>Guess a number between 1 and 100:</p>
+<input type="text" id="guessField">
+<button onclick="checkGuess()">Submit Guess</button>
+<p id="message"></p>
+
+<script>
+// Generate a random number between 1 and 100
+const randomNumber = Math.floor(Math.random() * 100) + 1;
+
+// Get references to the input and message elements
+const guessField = document.getElementById('guessField');
+const submitButton = document.querySelector('button');
+const message = document.getElementById('message');
+
+// Track the number of guesses
+let guessCount = 0;
+
+// Function to check the user's guess
+function checkGuess() {
+    // Get the user's guess and convert it to a number
+    const userGuess = Number(guessField.value);
+    
+    // Increment the guess count
+    guessCount++;
+
+    // Check if the guess is correct
+    if (userGuess === randomNumber) {
+        message.textContent = `Congratulations! You guessed the number in ${guessCount} guesses!`;
+        message.style.backgroundColor = 'green';
+        endGame();
+    } else if (guessCount === 10) {
+        message.textContent = `Game Over! The number was ${randomNumber}.`;
+        message.style.backgroundColor = 'red';
+        endGame();
+    } else {
+        message.textContent = userGuess < randomNumber ? 'Too low!' : 'Too high!';
+        message.style.backgroundColor = 'yellow';
+    }
+
+    // Clear the input field
+    guessField.value = '';
+    guessField.focus();
+}
+
+// Function to end the game
+function endGame() {
+    guessField.disabled = true;
+    submitButton.disabled = true;
+}
+</script>
+</body>
+</html>
