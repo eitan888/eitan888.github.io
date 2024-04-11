@@ -31,23 +31,36 @@ button {
 </head>
 <body>
 
-<h1>משחק נחש מספר</h1>
+<h1 style="color: blue;">משחק נחש מספר</h1>
 <p>נחש מספר בין 1 ל-100:</p>
-<input type="text" id="guessField">
+<input type="text" id="guessField" onkeypress="checkKeyPressed(event)">
 <button onclick="checkGuess()">שלח ניחוש</button>
 <p id="message"></p>
+<p id="guessCount"></p>
+<p id="previousGuesses"></p>
 
 <script>
 // יצירת מספר אקראי בין 1 ל-100
 const randomNumber = Math.floor(Math.random() * 100) + 1;
 
-// השגת התייחסויות לשדה הקלט ולהודעה
+// השגת התייחסויות לשדה הקלט, להודעה ולמונה הניחושים
 const guessField = document.getElementById('guessField');
 const submitButton = document.querySelector('button');
 const message = document.getElementById('message');
+const guessCountDisplay = document.getElementById('guessCount');
+const previousGuessesDisplay = document.getElementById('previousGuesses');
 
 // מעקב אחר מספר הניחושים
 let guessCount = 0;
+// ניחושים קודמים
+let previousGuesses = [];
+
+// פונקציה לבדיקת ניחוש המשתמש בלחיצת האנטר
+function checkKeyPressed(event) {
+    if (event.key === 'Enter') {
+        checkGuess();
+    }
+}
 
 // פונקציה לבדיקת ניחוש המשתמש
 function checkGuess() {
@@ -56,6 +69,15 @@ function checkGuess() {
     
     // עליית מונה הניחושים
     guessCount++;
+
+    // הוספת הניחוש לרשימת הניחושים הקודמים
+    previousGuesses.push(userGuess);
+
+    // הצגת הניחושים הקודמים
+    previousGuessesDisplay.textContent = `ניחושים קודמים: ${previousGuesses.join(', ')}`;
+
+    // הצגת מספר הניחושים
+    guessCountDisplay.textContent = `ניחוש מספר: ${guessCount}/10`;
 
     // בדיקה האם הניחוש נכון
     if (userGuess === randomNumber) {
