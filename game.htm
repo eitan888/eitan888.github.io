@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="he">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Guess the Number Game</title>
+<title>משחק נחש מספר</title>
 <style>
-/* CSS styles */
+/* סגנונות CSS */
 body {
     font-family: Arial, sans-serif;
 }
@@ -31,62 +31,52 @@ button {
 </head>
 <body>
 
-<h1 style="color:red;">Guess the Number Game</h1>
-<p>Guess a number between 1 and 100:</p>
+<h1>משחק נחש מספר</h1>
+<p>נחש מספר בין 1 ל-100:</p>
 <input type="text" id="guessField">
-<button onclick="checkGuess()">Submit Guess</button>
+<button onclick="checkGuess()">שלח ניחוש</button>
 <p id="message"></p>
 
 <script>
-// Generate a random number between 1 and 100
+// יצירת מספר אקראי בין 1 ל-100
 const randomNumber = Math.floor(Math.random() * 100) + 1;
 
-// Get references to the input and message elements
+// השגת התייחסויות לשדה הקלט ולהודעה
 const guessField = document.getElementById('guessField');
 const submitButton = document.querySelector('button');
 const message = document.getElementById('message');
 
-// Track the number of guesses
+// מעקב אחר מספר הניחושים
 let guessCount = 0;
 
-// Function to check if the key pressed is Enter
-function checkKeyPressed(event) {
-    if (event.key === 'Enter') {
-        checkGuess();
-    }
-}
-
-// Add event listener for key press on the input field
-guessField.addEventListener('keypress', checkKeyPressed);
-
-// Function to check the user's guess
+// פונקציה לבדיקת ניחוש המשתמש
 function checkGuess() {
-    // Get the user's guess and convert it to a number
+    // השגת הניחוש של המשתמש והמרתו למספר
     const userGuess = Number(guessField.value);
     
-    // Increment the guess count
+    // עליית מונה הניחושים
     guessCount++;
 
-    // Check if the guess is correct
+    // בדיקה האם הניחוש נכון
     if (userGuess === randomNumber) {
-        message.textContent = `Congratulations! You guessed the number in ${guessCount} guesses!`;
+        message.textContent = `כל הכבוד! נחשת את המספר ב-${guessCount} ניחושים!`;
         message.style.backgroundColor = 'green';
         endGame();
     } else if (guessCount === 10) {
-        message.textContent = `Game Over! The number was ${randomNumber}.`;
+        message.textContent = `סיום המשחק! המספר היה ${randomNumber}.`;
         message.style.backgroundColor = 'red';
         endGame();
     } else {
-        message.textContent = userGuess < randomNumber ? 'Too low!' : 'Too high!';
+        message.textContent = userGuess < randomNumber ? 'נמוך מדי!' : 'גבוה מדי!';
         message.style.backgroundColor = 'yellow';
     }
 
-    // Clear the input field
+    // ניקוי שדה הקלט
     guessField.value = '';
     guessField.focus();
 }
 
-// Function to end the game
+// פונקציה לסיום המשחק
 function endGame() {
     guessField.disabled = true;
     submitButton.disabled = true;
