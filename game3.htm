@@ -24,7 +24,7 @@
         transform: translate(-50%, -50%);
         display: none;
     }
-    #stageText, #livesText {
+    #stageText, #livesText, #scoreText {
         font-size: 24px;
         color: #0095DD;
         position: absolute;
@@ -35,6 +35,9 @@
         color: red;
         top: 50px; /* Adjusted position */
     }
+    #scoreText {
+        top: 80px; /* Adjusted position */
+    }
 </style>
 </head>
 <body>
@@ -43,6 +46,7 @@
 <div id="gameOverText">Game Over</div>
 <div id="stageText"></div>
 <div id="livesText"></div>
+<div id="scoreText"></div>
 
 <script>
 var canvas = document.getElementById("myCanvas");
@@ -64,6 +68,7 @@ var leftPressed = false;
 var intervalId;
 var stage = 1;
 var lives = 3;
+var score = 0;
 
 document.addEventListener("keydown", keyDownHandler, false);
 document.addEventListener("keyup", keyUpHandler, false);
@@ -109,12 +114,19 @@ function drawHearts() {
     document.getElementById("livesText").textContent = hearts;
 }
 
+function drawScore() {
+    document.getElementById("scoreText").textContent = "Score: " + score;
+}
+
 function collisionDetection() {
     if (y + dy < ballRadius) {
         dy = -dy;
     } else if (y + dy > canvas.height - ballRadius) {
-        if (x > paddleX && x < paddleX + paddleWidth) {
+        if (x > paddleX && x < paddleX + paddleWidth && y + dy > canvas.height - paddleHeight) {
             dy = -dy;
+            score++; // Increase score when ball touches the paddle
+            dx *= 1.1; // Increase ball speed by 10%
+            dy *= 1.1;
         } else {
             lives--;
             if (lives > 0) {
@@ -146,6 +158,7 @@ function draw() {
     collisionDetection();
     document.getElementById("stageText").textContent = "Stage: " + stage;
     drawHearts();
+    drawScore();
 }
 
 function gameOver() {
