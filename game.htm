@@ -32,16 +32,17 @@ button {
 <body>
 
 <h1 style="color: blue;">משחק נחש מספר</h1>
-<p>נחש מספר בין 1 ל-100:</p>
+<p>נחש מספר בין 1 ל-1000:</p>
 <input type="text" id="guessField" onkeypress="checkKeyPressed(event)">
 <button onclick="checkGuess()">שלח ניחוש</button>
+<button onclick="restartGame()">התחל מחדש</button>
 <p id="message"></p>
 <p id="guessCount"></p>
 <p id="previousGuesses"></p>
 
 <script>
-// יצירת מספר אקראי בין 1 ל-100
-const randomNumber = Math.floor(Math.random() * 100) + 1;
+// יצירת מספר אקראי בין 1 ל-1000
+const randomNumber = Math.floor(Math.random() * 1000) + 1;
 
 // השגת התייחסויות לשדה הקלט, להודעה ולמונה הניחושים
 const guessField = document.getElementById('guessField');
@@ -90,7 +91,9 @@ function checkGuess() {
         endGame();
     } else {
         message.textContent = userGuess < randomNumber ? 'נמוך מדי!' : 'גבוה מדי!';
-        message.style.backgroundColor = 'yellow';
+        // Generate a random color for the message
+        const randomColor = getRandomColor();
+        message.style.color = randomColor;
     }
 
     // ניקוי שדה הקלט
@@ -102,6 +105,21 @@ function checkGuess() {
 function endGame() {
     guessField.disabled = true;
     submitButton.disabled = true;
+}
+
+// פונקציה ליצירת צבע אקראי
+function getRandomColor() {
+    const letters = '0123456789ABCDEF';
+    let color = '#';
+    for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+}
+
+// פונקציה לאתחול המשחק מחדש
+function restartGame() {
+    location.reload();
 }
 </script>
 </body>
