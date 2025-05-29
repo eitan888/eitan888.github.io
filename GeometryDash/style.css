@@ -36,4 +36,8 @@ body {
     font-weight: bold;
 }
 
-/* rhythm-status style removed as the element is gone */
+#invincibilityChargesDisplay {
+    font-size: 1em;
+    color: #ffdd00; /* צבע צהבהב למטענים */
+    font-weight: bold;
+}
