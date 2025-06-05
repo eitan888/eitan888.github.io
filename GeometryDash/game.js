@@ -78,6 +78,8 @@ let player = {
     y: GROUND_HEIGHT - PLAYER_FALLBACK_HEIGHT, // התאמה לגובה ברירת המחדל
     velocityY: 0,
     isJumping: false,
+    jumpsMade: 0,     // חדש: מונה קפיצות שבוצעו
+    maxJumps: 2,      // חדש: מקסימום קפיצות מותרות (1 מהקרקע + 1 באוויר)
 
     // currentFrame: 0, // למקרה שתוסיף ספרייט
     // framesElapsed: 0, // למקרה שתוסיף ספרייט
@@ -132,6 +134,7 @@ let player = {
             this.y = GROUND_HEIGHT - this.height;
             this.velocityY = 0;
             this.isJumping = false;
+            this.jumpsMade = 0;     // אפס מונה קפיצות בעת נחיתה
         }
 
         // if (this.spriteSheet) { // אם יש ספרייט
@@ -147,9 +150,15 @@ let player = {
     },
 
     jump: function() {
-        if (!this.isJumping) {
-            this.velocityY = JUMP_STRENGTH;
-            this.isJumping = true;
+        // console.log('Jump attempt: jumpsMade =', this.jumpsMade, '| maxJumps =', this.maxJumps, '| velocityY before =', this.velocityY); // לדיבאגינג
+        // התנאי היחיד שקובע אם הקפיצה (הפעלת הכוח כלפי מעלה) מתבצעת הוא זה:
+        if (this.jumpsMade < this.maxJumps) {
+            this.velocityY = JUMP_STRENGTH; // החל כוח קפיצה
+            this.isJumping = true;         // השחקן כעת באוויר (או ממשיך להיות באוויר בגלל הקפיצה החדשה)
+            this.jumpsMade++;              // הגדל את מונה הקפיצות שבוצעו
+            // console.log('Jump success: new jumpsMade =', this.jumpsMade, '| new velocityY =', this.velocityY); // לדיבאגינג
+        } else {
+            // console.log('Jump failed: max jumps reached.'); // לדיבאגינג
         }
     }
 };
@@ -320,6 +329,7 @@ function restartGame() {
     player.y = GROUND_HEIGHT - player.height; // השתמש בגובה השחקן הנוכחי
     player.velocityY = 0;
     player.isJumping = false;
+    player.jumpsMade = 0
     // player.currentFrame = 0; // אם יש ספרייט
     // player.framesElapsed = 0; // אם יש ספרייט
 
