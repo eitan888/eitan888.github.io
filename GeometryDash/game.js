@@ -52,6 +52,8 @@ let currentColorIndex = Math.floor(Math.random() * backgroundColors.length);
 canvas.style.backgroundColor = backgroundColors[currentColorIndex];
 let lastScoreThresholdForBackgroundChange = 0;
 
+const ROTATION_SPEED = 0.15; // מהירות הסיבוב. אפשר לשנות כדי שיהיה מהיר או איטי יותר
+
 
 // --- Player Sprite (דוגמה אם תרצה להוסיף מאוחר יותר) ---
 /*
@@ -70,76 +72,93 @@ playerSpriteSheet.onerror = function() {
 */
 
 // --- Player ---
+// --- Player Object (גרסה מתוקנת ומלאה) ---
 let player = {
     x: 50,
-    // אם יש לך ספרייט, שנה את width ו-height ל-PLAYER_FRAME_WIDTH/HEIGHT
-    width: PLAYER_FALLBACK_WIDTH, // משתמש בערכי ברירת מחדל
+    width: PLAYER_FALLBACK_WIDTH,   // השתמש בקבועים שהגדרת למעלה
     height: PLAYER_FALLBACK_HEIGHT,
-    y: GROUND_HEIGHT - PLAYER_FALLBACK_HEIGHT, // התאמה לגובה ברירת המחדל
+    y: GROUND_HEIGHT - PLAYER_FALLBACK_HEIGHT,
     velocityY: 0,
     isJumping: false,
-    jumpsMade: 0,     // חדש: מונה קפיצות שבוצעו
-    maxJumps: 2,      // חדש: מקסימום קפיצות מותרות (1 מהקרקע + 1 באוויר)
 
-    // currentFrame: 0, // למקרה שתוסיף ספרייט
-    // framesElapsed: 0, // למקרה שתוסיף ספרייט
-    // spriteSheet: playerSpriteSheet, // למקרה שתוסיף ספרייט
+    // מאפיינים לקפיצה כפולה
+    jumpsMade: 0,
+    maxJumps: 2,
 
+    // מאפייני סיבוב
+    rotation: 0,
+    isSpinning: false,
+
+    // מאפייני אלמוות
     invincibilityCharges: 0,
     isInvincible: false,
     invincibilityTimer: 0,
 
+
+    // --- פונקציית ציור מתוקנת ומלאה ---
     draw: function() {
-        let originalAlpha = ctx.globalAlpha;
+        // המטרה: לסובב רק את השחקן, בלי להשפיע על שאר המשחק.
+        // לשם כך, אנחנו מבצעים סדרה של פעולות מבודדות:
 
-        if (this.isInvincible) {
-            ctx.globalAlpha = (Math.floor(gameFrame / 8) % 2 === 0) ? 0.6 : 0.9;
-        }
+        // 1. שמירת המצב הנוכחי של הקנבס (כמו מיקום וזווית)
+        ctx.save(); 
 
-        // ציור פשוט של ריבוע כרגע
-        ctx.fillStyle = PLAYER_COLOR;
-        ctx.fillRect(this.x, this.y, this.width, this.height);
+        try { // שימוש ב-try...finally כדי להבטיח ש-restore ייקרא תמיד
+            // 2. הזזת נקודת הייחוס (0,0) של הקנבס אל *מרכז* השחקן.
+            //    כל פעולת סיבוב תתבצע סביב נקודה זו.
+            ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
 
-        // אם היה ספרייט:
-        /*
-        if (this.spriteSheet && this.spriteSheet.complete && this.spriteSheet.naturalHeight !== 0) {
-            const sx = this.currentFrame * PLAYER_FRAME_WIDTH;
-            const sy = 0;
-            ctx.drawImage(
-                this.spriteSheet,
-                sx, sy, PLAYER_FRAME_WIDTH, PLAYER_FRAME_HEIGHT,
-                this.x, this.y, this.width, this.height
-            );
-        } else {
+            // 3. סיבוב הקנבס כולו בזווית הרצויה.
+            ctx.rotate(this.rotation);
+
+            // --- לוגיקת הציור עצמה, כולל אפקט אלמוות ---
+            // כעת, כשאנחנו מציירים, אנחנו מציירים ביחס למרכז המסובב.
+            let originalAlpha = ctx.globalAlpha;
+            if (this.isInvincible) {
+                // אפקט הבהוב
+                ctx.globalAlpha = (Math.floor(gameFrame / 8) % 2 === 0) ? 0.6 : 0.9;
+            }
+
             ctx.fillStyle = PLAYER_COLOR;
-            ctx.fillRect(this.x, this.y, this.width, this.height);
+            
+            // 4. צייר את המלבן כך שהמרכז שלו יהיה על נקודת הייחוס החדשה (0,0).
+            //    לכן מציירים אותו מהנקודה שהיא "חצי רוחב אחורה" ו"חצי גובה למעלה".
+            ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+
+            // אם היית משתמש בספרייט, היית מצייר אותו כאן באותו אופן:
+            // ctx.drawImage(this.spriteSheet, sx, sy, sWidth, sHeight, -this.width / 2, -this.height / 2, this.width, this.height);
+            
+            ctx.globalAlpha = originalAlpha; // שחזור שקיפות למקרה ששונתה
+
+        } finally {
+            // 5. שחזור המצב המקורי של הקנבס.
+            //    זה מבטל את ה-translate וה-rotate שעשינו, כך ששאר האלמנטים יצויירו נכון.
+            //    זהו השלב הקריטי שמונע מהמשחק "להשתגע".
+            ctx.restore(); 
         }
-        */
-        ctx.globalAlpha = originalAlpha;
+
+        // --- דיבאגינג (אפשר להסיר את ההערה אם הבעיה נמשכת) ---
+        // console.log(`Draw Frame: x=${this.x.toFixed(1)}, y=${this.y.toFixed(1)}, rotation=${this.rotation.toFixed(2)}`);
     },
 
-    // updateAnimation: function() { // למקרה שתוסיף ספרייט
-    //     this.framesElapsed++;
-    //     if (this.framesElapsed >= PLAYER_ANIMATION_SPEED) {
-    //         this.framesElapsed = 0;
-    //         this.currentFrame = (this.currentFrame + 1) % PLAYER_RUN_FRAMES;
-    //     }
-    // },
-
+    // --- שאר הפונקציות של השחקן (ללא שינוי מהפעם הקודמת) ---
     update: function() {
         this.velocityY += GRAVITY;
         this.y += this.velocityY;
 
-        if (this.y + this.height > GROUND_HEIGHT) {
+        // התנגשות עם הקרקע
+        if (this.y + this.height >= GROUND_HEIGHT) {
             this.y = GROUND_HEIGHT - this.height;
             this.velocityY = 0;
             this.isJumping = false;
-            this.jumpsMade = 0;     // אפס מונה קפיצות בעת נחיתה
+            this.jumpsMade = 0;
+            this.isSpinning = false;
+            this.rotation = 0;
         }
 
-        // if (this.spriteSheet) { // אם יש ספרייט
-        //     this.updateAnimation();
-        // }
+        if (this.isSpinning) {
+            this.rotation += ROTATION_SPEED;
+        }
 
         if (this.isInvincible) {
             this.invincibilityTimer--;
@@ -150,15 +169,13 @@ let player = {
     },
 
     jump: function() {
-        // console.log('Jump attempt: jumpsMade =', this.jumpsMade, '| maxJumps =', this.maxJumps, '| velocityY before =', this.velocityY); // לדיבאגינג
-        // התנאי היחיד שקובע אם הקפיצה (הפעלת הכוח כלפי מעלה) מתבצעת הוא זה:
         if (this.jumpsMade < this.maxJumps) {
-            this.velocityY = JUMP_STRENGTH; // החל כוח קפיצה
-            this.isJumping = true;         // השחקן כעת באוויר (או ממשיך להיות באוויר בגלל הקפיצה החדשה)
-            this.jumpsMade++;              // הגדל את מונה הקפיצות שבוצעו
-            // console.log('Jump success: new jumpsMade =', this.jumpsMade, '| new velocityY =', this.velocityY); // לדיבאגינג
-        } else {
-            // console.log('Jump failed: max jumps reached.'); // לדיבאגינג
+            this.velocityY = JUMP_STRENGTH;
+            this.isJumping = true;
+            this.jumpsMade++;
+            if (this.jumpsMade === 2) {
+                this.isSpinning = true;
+            }
         }
     }
 };
@@ -330,6 +347,8 @@ function restartGame() {
     player.velocityY = 0;
     player.isJumping = false;
     player.jumpsMade = 0
+    player.isSpinning = false; // <<<--- איפוס מצב סיבוב
+    player.rotation = 0;       // <<<--- איפוס זווית סיבוב
     // player.currentFrame = 0; // אם יש ספרייט
     // player.framesElapsed = 0; // אם יש ספרייט
 
