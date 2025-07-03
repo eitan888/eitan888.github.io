@@ -55,6 +55,8 @@ let lastScoreThresholdForBackgroundChange = 0;
 const ROTATION_SPEED = 0.15; // מהירות הסיבוב. אפשר לשנות כדי שיהיה מהיר או איטי יותר
 const CEILING_OBSTACLE_COLOR = '#ff9a8c'; // לדוגמה, גוון אדום-כתום
 
+let isGravityReversed = false;
+
 // --- Player Sprite (דוגמה אם תרצה להוסיף מאוחר יותר) ---
 /*
 const playerSpriteSheet = new Image();
@@ -74,81 +76,46 @@ playerSpriteSheet.onerror = function() {
 // --- Player ---
 // --- Player Object (גרסה מתוקנת ומלאה) ---
 let player = {
+    // ... מאפיינים קיימים: x, width, height, velocityY וכו' ...
     x: 50,
-    width: PLAYER_FALLBACK_WIDTH,   // השתמש בקבועים שהגדרת למעלה
+    width: PLAYER_FALLBACK_WIDTH,
     height: PLAYER_FALLBACK_HEIGHT,
     y: GROUND_HEIGHT - PLAYER_FALLBACK_HEIGHT,
     velocityY: 0,
     isJumping: false,
-
-    // מאפיינים לקפיצה כפולה
     jumpsMade: 0,
     maxJumps: 2,
-
-    // מאפייני סיבוב
     rotation: 0,
     isSpinning: false,
-
-    // מאפייני אלמוות
     invincibilityCharges: 0,
     isInvincible: false,
     invincibilityTimer: 0,
 
-
-    // --- פונקציית ציור מתוקנת ומלאה ---
-    draw: function() {
-        // המטרה: לסובב רק את השחקן, בלי להשפיע על שאר המשחק.
-        // לשם כך, אנחנו מבצעים סדרה של פעולות מבודדות:
-
-        // 1. שמירת המצב הנוכחי של הקנבס (כמו מיקום וזווית)
-        ctx.save(); 
-
-        try { // שימוש ב-try...finally כדי להבטיח ש-restore ייקרא תמיד
-            // 2. הזזת נקודת הייחוס (0,0) של הקנבס אל *מרכז* השחקן.
-            //    כל פעולת סיבוב תתבצע סביב נקודה זו.
-            ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
-
-            // 3. סיבוב הקנבס כולו בזווית הרצויה.
-            ctx.rotate(this.rotation);
-
-            // --- לוגיקת הציור עצמה, כולל אפקט אלמוות ---
-            // כעת, כשאנחנו מציירים, אנחנו מציירים ביחס למרכז המסובב.
-            let originalAlpha = ctx.globalAlpha;
-            if (this.isInvincible) {
-                // אפקט הבהוב
-                ctx.globalAlpha = (Math.floor(gameFrame / 8) % 2 === 0) ? 0.6 : 0.9;
-            }
-
-            ctx.fillStyle = PLAYER_COLOR;
-            
-            // 4. צייר את המלבן כך שהמרכז שלו יהיה על נקודת הייחוס החדשה (0,0).
-            //    לכן מציירים אותו מהנקודה שהיא "חצי רוחב אחורה" ו"חצי גובה למעלה".
-            ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
-
-            // אם היית משתמש בספרייט, היית מצייר אותו כאן באותו אופן:
-            // ctx.drawImage(this.spriteSheet, sx, sy, sWidth, sHeight, -this.width / 2, -this.height / 2, this.width, this.height);
-            
-            ctx.globalAlpha = originalAlpha; // שחזור שקיפות למקרה ששונתה
-
-        } finally {
-            // 5. שחזור המצב המקורי של הקנבס.
-            //    זה מבטל את ה-translate וה-rotate שעשינו, כך ששאר האלמנטים יצויירו נכון.
-            //    זהו השלב הקריטי שמונע מהמשחק "להשתגע".
-            ctx.restore(); 
-        }
-
-        // --- דיבאגינג (אפשר להסיר את ההערה אם הבעיה נמשכת) ---
-        // console.log(`Draw Frame: x=${this.x.toFixed(1)}, y=${this.y.toFixed(1)}, rotation=${this.rotation.toFixed(2)}`);
-    },
-
-    // --- שאר הפונקציות של השחקן (ללא שינוי מהפעם הקודמת) ---
+    // --- פונקציית עדכון פיזיקה מתוקנת ---
     update: function() {
-        this.velocityY += GRAVITY;
+        // 1. החלת כוח משיכה בהתאם למצב
+        if (isGravityReversed) {
+            this.velocityY -= GRAVITY; // כוח המשיכה "מושך" למעלה
+        } else {
+            this.velocityY += GRAVITY; // כוח המשיכה הרגיל מושך למטה
+        }
         this.y += this.velocityY;
 
-        // התנגשות עם הקרקע
-        if (this.y + this.height >= GROUND_HEIGHT) {
-            this.y = GROUND_HEIGHT - this.height;
+        // 2. בדיקת התנגשות עם קרקע (רגילה או הפוכה)
+        const landedOnGround = !isGravityReversed && (this.y + this.height >= GROUND_HEIGHT);
+        const landedOnCeiling = isGravityReversed && (this.y <= 0);
+
+        if (landedOnGround || landedOnCeiling) {
+            // אם נחת על הקרקע הרגילה, קבע אותו על הקרקע
+            if (landedOnGround) {
+                this.y = GROUND_HEIGHT - this.height;
+            }
+            // אם נחת על התקרה, קבע אותו על התקרה
+            if (landedOnCeiling) {
+                this.y = 0;
+            }
+            
+            // איפוס כל משתני הקפיצה והסיבוב
             this.velocityY = 0;
             this.isJumping = false;
             this.jumpsMade = 0;
@@ -156,10 +123,12 @@ let player = {
             this.rotation = 0;
         }
 
+        // עדכון סיבוב
         if (this.isSpinning) {
             this.rotation += ROTATION_SPEED;
         }
 
+        // עדכון אלמוות
         if (this.isInvincible) {
             this.invincibilityTimer--;
             if (this.invincibilityTimer <= 0) {
@@ -168,14 +137,42 @@ let player = {
         }
     },
 
+    // --- פונקציית קפיצה מתוקנת ---
     jump: function() {
         if (this.jumpsMade < this.maxJumps) {
-            this.velocityY = JUMP_STRENGTH;
+            // כיוון הקפיצה תלוי בכוח המשיכה
+            this.velocityY = isGravityReversed ? -JUMP_STRENGTH : JUMP_STRENGTH;
             this.isJumping = true;
             this.jumpsMade++;
             if (this.jumpsMade === 2) {
                 this.isSpinning = true;
             }
+        }
+    },
+
+    // --- פונקציית ציור מתוקנת ---
+    draw: function() {
+        ctx.save();
+        try {
+            ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+            ctx.rotate(this.rotation);
+
+            // אם כוח המשיכה הפוך, הפוך את הציור אנכית
+            if (isGravityReversed) {
+                ctx.scale(1, -1);
+            }
+            
+            // לוגיקת הציור הרגילה
+            let originalAlpha = ctx.globalAlpha;
+            if (this.isInvincible) {
+                ctx.globalAlpha = (Math.floor(gameFrame / 8) % 2 === 0) ? 0.6 : 0.9;
+            }
+            ctx.fillStyle = PLAYER_COLOR;
+            ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
+            ctx.globalAlpha = originalAlpha;
+            
+        } finally {
+            ctx.restore();
         }
     }
 };
@@ -194,6 +191,14 @@ function spawnGroundObstacle() {
         height: obsHeight,
         color: OBSTACLE_COLOR
     });
+}
+
+function updateGravityState() {
+    if (score >= 300 && score < 600) {
+        isGravityReversed = true;
+    } else {
+        isGravityReversed = false;
+    }
 }
 
 // פונקציה חדשה שיוצרת מכשול שיורד מהתקרה
@@ -264,6 +269,7 @@ function handleObstacles() {
             obstacles.splice(i, 1);
             score += 10;
             scoreDisplay.textContent = `Score: ${score}`;
+            updateGravityState();
 
             if (score >= (lastScoreAtChargeGrant + 100)) {
                 let chargesToGain = Math.floor(score / 100) - Math.floor(lastScoreAtChargeGrant / 100);
@@ -389,6 +395,8 @@ function restartGame() {
     player.invincibilityTimer = 0;
     lastScoreAtChargeGrant = 0;
     updateInvincibilityChargesDisplay();
+
+    isGravityReversed = false;
 
     // Reset game state
     obstacles = [];
