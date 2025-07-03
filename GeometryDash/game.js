@@ -48,6 +48,10 @@ const backgroundColors = [
     '#4E342E', '#6D4C41', '#3E2723',
     '#004D40', '#00695C'
 ];
+const PARTICLE_COLORS = [
+    '#ff7474', '#ffc974', '#fffb74', '#b3ff74', 
+    '#74ffb3', '#74d7ff', '#7495ff', '#b374ff', '#ff74f0'
+]; // פלטת צבעים בוהקים "קסומים"
 let currentColorIndex = Math.floor(Math.random() * backgroundColors.length);
 canvas.style.backgroundColor = backgroundColors[currentColorIndex];
 let lastScoreThresholdForBackgroundChange = 0;
@@ -56,6 +60,8 @@ const ROTATION_SPEED = 0.15; // מהירות הסיבוב. אפשר לשנות �
 const CEILING_OBSTACLE_COLOR = '#ff9a8c'; // לדוגמה, גוון אדום-כתום
 
 let isGravityReversed = false;
+
+let particles = [];
 
 // --- Player Sprite (דוגמה אם תרצה להוסיף מאוחר יותר) ---
 /*
@@ -94,12 +100,9 @@ let player = {
     // --- פונקציית עדכון פיזיקה מתוקנת ---
     update: function() {
         // 1. החלת כוח משיכה בהתאם למצב
-        if (isGravityReversed) {
-            this.velocityY -= GRAVITY; // כוח המשיכה "מושך" למעלה
-        } else {
-            this.velocityY += GRAVITY; // כוח המשיכה הרגיל מושך למטה
-        }
+        this.velocityY += isGravityReversed ? -GRAVITY : GRAVITY;
         this.y += this.velocityY;
+
 
         // 2. בדיקת התנגשות עם קרקע (רגילה או הפוכה)
         const landedOnGround = !isGravityReversed && (this.y + this.height >= GROUND_HEIGHT);
@@ -121,6 +124,10 @@ let player = {
             this.jumpsMade = 0;
             this.isSpinning = false;
             this.rotation = 0;
+
+             if (gameFrame % 4 === 0) {
+            spawnDustParticle();
+        }
         }
 
         // עדכון סיבוב
@@ -176,6 +183,60 @@ let player = {
         }
     }
 };
+
+// פונקציה זו מעדכנת ומציירת את כל החלקיקים בכל פריים
+function handleParticles() {
+    // אנחנו רצים על המערך מהסוף להתחלה כדי שנוכל למחוק ממנו איברים בבטחה
+    for (let i = particles.length - 1; i >= 0; i--) {
+        let p = particles[i];
+        
+        // עדכון מיקום ו"חיים"
+        p.x += p.vx;
+        p.y += p.vy;
+        p.life--;
+        
+        if (p.life <= 0) {
+            // אם ה"חיים" של החלקיק נגמרו, הסר אותו מהמערך
+            particles.splice(i, 1);
+        } else {
+            // צייר את החלקיק, עם אפקט "דעיכה" (fade out)
+            ctx.globalAlpha = p.life / p.startLife; // השקיפות תלויה בזמן החיים שנותר
+            ctx.fillStyle = p.color;
+            ctx.fillRect(p.x, p.y, p.size, p.size);
+            ctx.globalAlpha = 1.0; // אפס את השקיפות הגלובלית חזרה ל-1
+        }
+    }
+}
+
+// פונקציה שיוצרת חלקיק אבק בודד (גרסה משופרת)
+function spawnDustParticle() {
+    // 1. הגדלת טווח הגודל האקראי
+    const size = Math.random() * 5 + 3; // גודל חדש: בין 3 ל-8 פיקסלים
+
+    // 2. בחירת צבע אקראי מהפלטה החדשה שלנו
+    const color = PARTICLE_COLORS[Math.floor(Math.random() * PARTICLE_COLORS.length)];
+
+    // אפשר להאריך מעט את "זמן החיים" כדי שיראו אותם יותר זמן
+    const life = Math.random() * 30 + 50; // "חיים" בין 50 ל-80 פריימים
+
+    // --- שאר הלוגיקה נשארת זהה ---
+    const spawnX = player.x;
+    const spawnY = isGravityReversed ? player.y : player.y + player.height;
+
+    const vx = -(Math.random() * 1.5 + 0.5);
+    const vy = isGravityReversed ? (Math.random() * 1) : -(Math.random() * 1);
+
+    particles.push({
+        x: spawnX,
+        y: spawnY,
+        vx: vx,
+        vy: vy,
+        size: size,
+        life: life,
+        startLife: life,
+        color: color
+    });
+}
 
 // --- Obstacles ---
 let obstacles = [];
@@ -323,6 +384,7 @@ function gameLoop() { // הסרתי את timestamp כי לא השתמשת בו
     ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
     drawGround();
+    handleParticles();
     player.update();
     player.draw();
     handleObstacles();
@@ -397,6 +459,7 @@ function restartGame() {
     updateInvincibilityChargesDisplay();
 
     isGravityReversed = false;
+    particles = [];
 
     // Reset game state
     obstacles = [];
