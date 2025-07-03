@@ -53,7 +53,7 @@ canvas.style.backgroundColor = backgroundColors[currentColorIndex];
 let lastScoreThresholdForBackgroundChange = 0;
 
 const ROTATION_SPEED = 0.15; // מהירות הסיבוב. אפשר לשנות כדי שיהיה מהיר או איטי יותר
-
+const CEILING_OBSTACLE_COLOR = '#ff9a8c'; // לדוגמה, גוון אדום-כתום
 
 // --- Player Sprite (דוגמה אם תרצה להוסיף מאוחר יותר) ---
 /*
@@ -183,16 +183,48 @@ let player = {
 // --- Obstacles ---
 let obstacles = [];
 
-function spawnObstacle() {
+function spawnGroundObstacle() {
     const heightVariance = Math.random() * 60 - 20;
-    const obsHeight = OBSTACLE_HEIGHT_BASE + heightVariance; // שימוש ב-OBSTACLE_HEIGHT_BASE
+    const obsHeight = OBSTACLE_HEIGHT_BASE + heightVariance;
     obstacles.push({
+        type: 'ground', // נוסיף "סוג" כדי שיהיה ברור, למקרה שנרצה בעתיד
         x: GAME_WIDTH,
-        y: GROUND_HEIGHT - obsHeight,
-        width: OBSTACLE_WIDTH_BASE + (Math.random() * 20 - 10), // שימוש ב-OBSTACLE_WIDTH_BASE
+        y: GROUND_HEIGHT - obsHeight, // המיקום מחושב מהקרקע כלפי מעלה
+        width: OBSTACLE_WIDTH_BASE + (Math.random() * 20 - 10),
         height: obsHeight,
         color: OBSTACLE_COLOR
     });
+}
+
+// פונקציה חדשה שיוצרת מכשול שיורד מהתקרה
+function spawnCeilingObstacle() {
+    const heightVariance = Math.random() * 70 + 30; // כמה נמוך המכשול יורד
+    const obsHeight = OBSTACLE_HEIGHT_BASE + heightVariance;
+    obstacles.push({
+        type: 'ceiling', // סוג: תקרה
+        x: GAME_WIDTH,
+        y: 0, // המיקום מתחיל מ-0 (החלק העליון של הקנבס)
+        width: OBSTACLE_WIDTH_BASE + (Math.random() * 20 - 10),
+        height: obsHeight,
+        color: CEILING_OBSTACLE_COLOR // צבע שונה
+    });
+}
+
+// פונקציית "מאסטר" חדשה שבוחרת איזה מכשול ליצור
+function spawnObstacle() {
+    // תנאי חדש: בדוק את הניקוד הנוכחי
+    if (score < 300) {
+        // אם הניקוד נמוך מ-300, צור *רק* מכשולי קרקע
+        spawnGroundObstacle();
+    } else {
+        // אם הניקוד הוא 300 או יותר, הפעל את הלוגיקה האקראית
+        // שמאפשרת גם יצירה של מכשולי תקרה.
+        if (Math.random() < 0.6) { // 70% סיכוי למכשול קרקע
+            spawnGroundObstacle();
+        } else { // 30% סיכוי למכשול תקרה
+            spawnCeilingObstacle();
+        }
+    }
 }
 
 function handleObstacles() {
@@ -200,11 +232,12 @@ function handleObstacles() {
     let spawnFrequency = Math.max(30, (120 - Math.floor(gameSpeed * 5)));
     if (gameFrame % spawnFrequency === 0) {
         if (Math.random() < 0.6 + (gameSpeed / 50)) {
-            spawnObstacle();
+            // קריאה לפונקציית המאסטר החדשה. זה השינוי היחיד כאן.
+            spawnObstacle(); 
         }
     }
 
-    // Update and draw obstacles
+    // --- שאר הפונקציה נשאר זהה לחלוטין! ---
     for (let i = obstacles.length - 1; i >= 0; i--) {
         let obs = obstacles[i];
         obs.x -= gameSpeed;
@@ -213,7 +246,7 @@ function handleObstacles() {
         ctx.fillStyle = obs.color;
         ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
 
-        // Collision detection
+        // לוגיקת ההתנגשות נשארת זהה ועובדת עבור שני סוגי המכשולים
         if (
             !player.isInvincible &&
             player.x < obs.x + obs.width &&
@@ -224,24 +257,23 @@ function handleObstacles() {
             gameOver();
         }
 
-        // Remove off-screen obstacles & update score & grant charges
+        // הסרת מכשולים ועדכון ניקוד
         if (obs.x + obs.width < 0) {
+            // ... כל הלוגיקה הקיימת של עדכון ניקוד, צבירת מטענים ושינוי רקע ...
+            // נשארת בדיוק כפי שהיא.
             obstacles.splice(i, 1);
             score += 10;
             scoreDisplay.textContent = `Score: ${score}`;
 
-            // *** כאן הייתה הבעיה העיקרית: הלוגיקה של צבירת המטען הייתה חסרה ***
-            // Grant invincibility charges
             if (score >= (lastScoreAtChargeGrant + 100)) {
                 let chargesToGain = Math.floor(score / 100) - Math.floor(lastScoreAtChargeGrant / 100);
                 if (chargesToGain > 0) {
                     player.invincibilityCharges += chargesToGain;
-                    lastScoreAtChargeGrant = Math.floor(score / 100) * 100; // עדכן את הסף רק אם באמת ניתנו מטענים
+                    lastScoreAtChargeGrant = Math.floor(score / 100) * 100;
                     updateInvincibilityChargesDisplay();
                 }
             }
 
-            // Change background color every 10 points
             if (score >= lastScoreThresholdForBackgroundChange + 10) {
                 lastScoreThresholdForBackgroundChange += 10;
                 let newColorIndex;
