@@ -26,6 +26,15 @@ const OBSTACLE_HEIGHT_BASE = 50; // שיניתי שם
 const OBSTACLE_COLOR = 'red';
 const OBSTACLE_SPEED_INITIAL = 5;
 
+const RAINBOW_SPARK_COLORS = [
+    '#ff4d4d', // אדום
+    '#ff9f4d', // כתום
+    '#ffff4d', // צהוב
+    '#4dff4d', // ירוק
+    '#4d9fff', // כחול
+    '#9f4dff'  // סגול
+];
+
 const backgroundMusic = document.getElementById('backgroundMusic');
 let musicStarted = false;
 
@@ -153,6 +162,10 @@ let player = {
             this.jumpsMade++;
             if (this.jumpsMade === 2) {
                 this.isSpinning = true;
+                // צור מספר ניצוצות ברגע הקפיצה הכפולה
+                for (let i = 0; i < 159; i++) { // כ-15 ניצוצות בכל קפיצה כפולה
+                    spawnSparkParticle();
+                }
             }
         }
     },
@@ -186,26 +199,62 @@ let player = {
 
 // פונקציה זו מעדכנת ומציירת את כל החלקיקים בכל פריים
 function handleParticles() {
-    // אנחנו רצים על המערך מהסוף להתחלה כדי שנוכל למחוק ממנו איברים בבטחה
     for (let i = particles.length - 1; i >= 0; i--) {
         let p = particles[i];
         
-        // עדכון מיקום ו"חיים"
         p.x += p.vx;
         p.y += p.vy;
         p.life--;
         
         if (p.life <= 0) {
-            // אם ה"חיים" של החלקיק נגמרו, הסר אותו מהמערך
             particles.splice(i, 1);
         } else {
-            // צייר את החלקיק, עם אפקט "דעיכה" (fade out)
-            ctx.globalAlpha = p.life / p.startLife; // השקיפות תלויה בזמן החיים שנותר
+            ctx.globalAlpha = p.life / p.startLife; // אפקט דעיכה
             ctx.fillStyle = p.color;
-            ctx.fillRect(p.x, p.y, p.size, p.size);
-            ctx.globalAlpha = 1.0; // אפס את השקיפות הגלובלית חזרה ל-1
+            
+            // --- שינוי לצייר עיגולים במקום ריבועים ---
+            ctx.beginPath(); // התחל ציור נתיב חדש
+            // צייר עיגול. size מייצג קוטר, לכן נשתמש בחצי ממנו לרדיוס.
+            ctx.arc(p.x, p.y, p.size / 2, 0, Math.PI * 2); 
+            ctx.fill(); // מלא את העיגול בצבע
+            // -----------------------------------------
+
+            ctx.globalAlpha = 1.0; // אפס שקיפות גלובלית
         }
     }
+}
+
+// פונקציה שיוצרת חלקיק ניצוץ בודד
+function spawnSparkParticle() {
+    // 1. הגדלת טווח הגודל
+    const size = Math.random() * 6 + 4; // גודל חדש: בין 4 ל-10 פיקסלים
+
+    // 2. זמן חיים מעט ארוך יותר
+    const life = Math.random() * 20 + 30; // "חיים" בין 30 ל-50 פריימים
+
+    // 3. בחירת צבע אקראי מפלטת הקשת
+    const color = RAINBOW_SPARK_COLORS[Math.floor(Math.random() * RAINBOW_SPARK_COLORS.length)];
+
+    // מיקום התחלתי: סביב מרכז השחקן
+    const spawnX = player.x + player.width / 2 + (Math.random() * 10 - 5);
+    const spawnY = player.y + player.height / 2 + (Math.random() * 10 - 5);
+
+    // 4. מהירות גבוהה יותר להתפוצצות בולטת
+    const angle = Math.random() * 2 * Math.PI; // זווית אקראית
+    const speed = Math.random() * 4 + 2; // מהירות חדשה: בין 2 ל-6
+    const vx = Math.cos(angle) * speed;
+    const vy = Math.sin(angle) * speed;
+
+    particles.push({
+        x: spawnX,
+        y: spawnY,
+        vx: vx,
+        vy: vy,
+        size: size,
+        life: life,
+        startLife: life,
+        color: color
+    });
 }
 
 // פונקציה שיוצרת חלקיק אבק בודד (גרסה משופרת)
