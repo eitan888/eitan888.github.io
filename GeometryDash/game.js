@@ -57,7 +57,7 @@ const backgroundColors = [
     '#4E342E', '#6D4C41', '#3E2723',
     '#004D40', '#00695C'
 ];
-const PARTICLE_COLORS = [
+const DUST_COLORS  = [
     '#ff7474', '#ffc974', '#fffb74', '#b3ff74', 
     '#74ffb3', '#74d7ff', '#7495ff', '#b374ff', '#ff74f0'
 ]; // פלטת צבעים בוהקים "קסומים"
@@ -134,7 +134,7 @@ let player = {
             this.isSpinning = false;
             this.rotation = 0;
 
-             if (gameFrame % 4 === 0) {
+             if (gameFrame % 2 === 0) {
             spawnDustParticle();
         }
         }
@@ -257,23 +257,22 @@ function spawnSparkParticle() {
     });
 }
 
-// פונקציה שיוצרת חלקיק אבק בודד (גרסה משופרת)
 function spawnDustParticle() {
-    // 1. הגדלת טווח הגודל האקראי
-    const size = Math.random() * 5 + 3; // גודל חדש: בין 3 ל-8 פיקסלים
+    const size = Math.random() * 5 + 3;
+    const life = Math.random() * 30 + 50;
+    
+    // שימוש בפלטת הצבעים החדשה של האבק
+    const color = DUST_COLORS[Math.floor(Math.random() * DUST_COLORS.length)];
 
-    // 2. בחירת צבע אקראי מהפלטה החדשה שלנו
-    const color = PARTICLE_COLORS[Math.floor(Math.random() * PARTICLE_COLORS.length)];
+    // --- שינוי במיקום ובתנועה ---
+    const spawnX = player.x; // עדיין מהצד השמאלי
+    
+    // מיקום Y אקראי לאורך כל צידו השמאלי של השחקן
+    const spawnY = player.y + Math.random() * player.height;
 
-    // אפשר להאריך מעט את "זמן החיים" כדי שיראו אותם יותר זמן
-    const life = Math.random() * 30 + 50; // "חיים" בין 50 ל-80 פריימים
-
-    // --- שאר הלוגיקה נשארת זהה ---
-    const spawnX = player.x;
-    const spawnY = isGravityReversed ? player.y : player.y + player.height;
-
-    const vx = -(Math.random() * 1.5 + 0.5);
-    const vy = isGravityReversed ? (Math.random() * 1) : -(Math.random() * 1);
+    const vx = -(Math.random() * 2.0 + 0.5); // מהירות אופקית מעט גדולה יותר
+    const vy = (Math.random() - 0.5) * 1.5; // מהירות אנכית אקראית (מעט למעלה או למטה)
+    // --- סוף השינוי ---
 
     particles.push({
         x: spawnX,
