@@ -4,6 +4,9 @@ const scoreDisplay = document.getElementById('score');
 const invincibilityChargesDisplay = document.getElementById('invincibilityChargesDisplay');
 const INVINCIBILITY_DURATION_FRAMES = 5 * 60; // 5 שניות כפול 60 פריימים לשנייה (בערך)
 
+const sfxJump = new Audio('sfx/jump.wav');
+sfxJump.volume = 0.7;
+
 // Game settings
 const GAME_WIDTH = 800;
 const GAME_HEIGHT = 400;
@@ -36,6 +39,7 @@ const RAINBOW_SPARK_COLORS = [
 ];
 
 const backgroundMusic = document.getElementById('backgroundMusic');
+backgroundMusic.volume = 0.3;
 let musicStarted = false;
 
 let score = 0;
@@ -160,6 +164,7 @@ let player = {
             this.velocityY = isGravityReversed ? -JUMP_STRENGTH : JUMP_STRENGTH;
             this.isJumping = true;
             this.jumpsMade++;
+            playSound(sfxJump);
             if (this.jumpsMade === 2) {
                 this.isSpinning = true;
                 // צור מספר ניצוצות ברגע הקפיצה הכפולה
@@ -196,6 +201,12 @@ let player = {
         }
     }
 };
+
+// פונקציית עזר לניגון אפקטים קוליים
+function playSound(sound) {
+    sound.currentTime = 0; // החזר את הצליל להתחלה
+    sound.play().catch(error => console.error(`Error playing sound ${sound.src}:`, error));
+}
 
 // פונקציה זו מעדכנת ומציירת את כל החלקיקים בכל פריים
 function handleParticles() {
