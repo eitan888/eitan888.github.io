@@ -42,6 +42,46 @@ const backgroundMusic = document.getElementById('backgroundMusic');
 backgroundMusic.volume = 0.3;
 let musicStarted = false;
 
+
+
+// בתחילת הקובץ game.js, מתחת לשאר הקבועים וטעינת ה-SFX
+
+// --- Obstacle Sprites ---
+const dragonImages = [];
+const dragonImagePaths = [
+    'img/dragon1.jpg',
+    'img/dragon2.jpg',
+    'img/dragon3.jpg',
+    'img/dragon4.jpg'
+];
+
+let imagesLoadedCount = 0;
+let totalImagesToLoad = dragonImagePaths.length;
+let assetsLoaded = false; // דגל חדש לניהול טעינת נכסים
+
+// טעינת כל תמונות הדרקון
+dragonImagePaths.forEach(path => {
+    const img = new Image();
+    img.src = path;
+    img.onload = () => {
+        imagesLoadedCount++;
+        if (imagesLoadedCount === totalImagesToLoad) {
+            assetsLoaded = true; // כל התמונות נטענו
+            // אם יש לך כאן פונקציה כמו `startGameWhenAssetsLoaded()`, זה המקום לקרוא לה
+        }
+    };
+    img.onerror = () => {
+        console.error(`Failed to load image: ${path}`);
+        imagesLoadedCount++; // עדיין נספור גם אם נכשלה הטעינה
+        if (imagesLoadedCount === totalImagesToLoad) {
+            assetsLoaded = true;
+        }
+    };
+    dragonImages.push(img);
+});
+
+
+
 let score = 0;
 let gameSpeed = OBSTACLE_SPEED_INITIAL;
 let gameFrame = 0;
@@ -304,12 +344,41 @@ function spawnGroundObstacle() {
     const heightVariance = Math.random() * 60 - 20;
     const obsHeight = OBSTACLE_HEIGHT_BASE + heightVariance;
     obstacles.push({
-        type: 'ground', // נוסיף "סוג" כדי שיהיה ברור, למקרה שנרצה בעתיד
+        type: 'ground',
         x: GAME_WIDTH,
-        y: GROUND_HEIGHT - obsHeight, // המיקום מחושב מהקרקע כלפי מעלה
+        y: GROUND_HEIGHT - obsHeight,
         width: OBSTACLE_WIDTH_BASE + (Math.random() * 20 - 10),
         height: obsHeight,
-        color: OBSTACLE_COLOR
+        color: OBSTACLE_COLOR,
+        // כאן אין isDragon: true, כי זהו מכשול מלבני רגיל
+        // image: null 
+    });
+}
+
+// פונקציה חדשה שיוצרת מכשול דרקון
+function spawnDragonObstacle(isCeiling) {
+    const imageIndex = Math.floor(Math.random() * dragonImages.length);
+    const dragonImg = dragonImages[imageIndex];
+
+    const dragonWidth = 60; // התאם את אלה לפי גודל הדרקונים בתמונות שלך
+    const dragonHeight = 80;
+
+    let obstacleY;
+    if (isCeiling) {
+        obstacleY = 0;
+    } else {
+        obstacleY = GROUND_HEIGHT - dragonHeight;
+    }
+
+    obstacles.push({
+        type: isCeiling ? 'ceiling' : 'ground',
+        x: GAME_WIDTH,
+        y: obstacleY,
+        width: dragonWidth,
+        height: dragonHeight,
+        color: 'transparent', // הצבע לא ייראה, אבל טוב להגדיר
+        isDragon: true,      // <<< חשוב: מסמן שזה דרקון
+        image: dragonImg     // <<< חשוב: מקשר לתמונה
     });
 }
 
@@ -323,55 +392,74 @@ function updateGravityState() {
 
 // פונקציה חדשה שיוצרת מכשול שיורד מהתקרה
 function spawnCeilingObstacle() {
-    const heightVariance = Math.random() * 70 + 30; // כמה נמוך המכשול יורד
+    const heightVariance = Math.random() * 70 + 30;
     const obsHeight = OBSTACLE_HEIGHT_BASE + heightVariance;
     obstacles.push({
-        type: 'ceiling', // סוג: תקרה
+        type: 'ceiling',
         x: GAME_WIDTH,
-        y: 0, // המיקום מתחיל מ-0 (החלק העליון של הקנבס)
+        y: 0,
         width: OBSTACLE_WIDTH_BASE + (Math.random() * 20 - 10),
         height: obsHeight,
-        color: CEILING_OBSTACLE_COLOR // צבע שונה
+        color: CEILING_OBSTACLE_COLOR,
+        // כאן אין isDragon: true, כי זהו מכשול מלבני רגיל
+        // image: null 
     });
 }
 
 // פונקציית "מאסטר" חדשה שבוחרת איזה מכשול ליצור
+// פונקציית "מאסטר" שבוחרת איזה מכשול ליצור
 function spawnObstacle() {
-    // תנאי חדש: בדוק את הניקוד הנוכחי
     if (score < 300) {
-        // אם הניקוד נמוך מ-300, צור *רק* מכשולי קרקע
-        spawnGroundObstacle();
-    } else {
-        // אם הניקוד הוא 300 או יותר, הפעל את הלוגיקה האקראית
-        // שמאפשרת גם יצירה של מכשולי תקרה.
-        if (Math.random() < 0.6) { // 70% סיכוי למכשול קרקע
+        // מתחת ל-300 נקודות: צור דרקונים בלבד (או שילוב דרקונים/מלבנים לפי רצונך)
+        // לצורך הדוגמה הזו, נצור רק דרקונים בשלב זה
+        const isCeilingDragon = Math.random() < 0.5; // 50% סיכוי לדרקון תקרה / קרקע
+        spawnDragonObstacle(isCeilingDragon);
+    } else if (score >= 300 && score < 610) {
+        // בין 300 ל-609 נקודות: חזור למכשולי מלבן רגילים (קרקע/תקרה)
+        if (Math.random() < 0.6) {
             spawnGroundObstacle();
-        } else { // 30% סיכוי למכשול תקרה
+        } else {
             spawnCeilingObstacle();
         }
+    } else { // מעל 610 נקודות: שוב דרקונים, אבל אולי מסוג שונה או קצב שונה
+        // כאן אתה יכול להחליט אם ליצור דרקונים שונים, או לחזור על הלוגיקה ממתחת ל-300
+        const isCeilingDragon = Math.random() < 0.5;
+        spawnDragonObstacle(isCeilingDragon);
     }
 }
 
 function handleObstacles() {
-    // Spawn logic
+    // Spawn logic - נשאר ללא שינוי
     let spawnFrequency = Math.max(30, (120 - Math.floor(gameSpeed * 5)));
     if (gameFrame % spawnFrequency === 0) {
         if (Math.random() < 0.6 + (gameSpeed / 50)) {
-            // קריאה לפונקציית המאסטר החדשה. זה השינוי היחיד כאן.
             spawnObstacle(); 
         }
     }
 
-    // --- שאר הפונקציה נשאר זהה לחלוטין! ---
+    // לולאה על כל המכשולים
     for (let i = obstacles.length - 1; i >= 0; i--) {
         let obs = obstacles[i];
         obs.x -= gameSpeed;
 
-        // Draw obstacle
-        ctx.fillStyle = obs.color;
-        ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+        // ######################################################
+        // ### כאן נמצא התיקון המרכזי - לוגיקת הציור ###
+        // ######################################################
 
-        // לוגיקת ההתנגשות נשארת זהה ועובדת עבור שני סוגי המכשולים
+        if (obs.isDragon && obs.image && obs.image.complete) {
+            // אם המכשול הוא דרקון, יש לו תמונה והיא נטענה - צייר את התמונה
+            ctx.drawImage(obs.image, obs.x, obs.y, obs.width, obs.height);
+        } else {
+            // אחרת (אם זה מכשול מלבני רגיל) - צייר מלבן צבעוני
+            ctx.fillStyle = obs.color;
+            ctx.fillRect(obs.x, obs.y, obs.width, obs.height);
+        }
+
+        // ######################################################
+        // ### סוף התיקון ###
+        // ######################################################
+
+        // לוגיקת ההתנגשות נשארת זהה
         if (
             !player.isInvincible &&
             player.x < obs.x + obs.width &&
@@ -382,10 +470,8 @@ function handleObstacles() {
             gameOver();
         }
 
-        // הסרת מכשולים ועדכון ניקוד
+        // הסרת מכשולים ועדכון ניקוד - נשאר ללא שינוי
         if (obs.x + obs.width < 0) {
-            // ... כל הלוגיקה הקיימת של עדכון ניקוד, צבירת מטענים ושינוי רקע ...
-            // נשארת בדיוק כפי שהיא.
             obstacles.splice(i, 1);
             score += 10;
             scoreDisplay.textContent = `Score: ${score}`;
@@ -430,15 +516,16 @@ function drawGround() {
 function gameLoop() { // הסרתי את timestamp כי לא השתמשת בו
     if (!gameRunning) return;
 
-    // אם היית משתמש ב-gameAssetsLoaded, כאן הייתה הבדיקה
-    // if (!gameAssetsLoaded) {
-    //     ctx.fillStyle = 'white';
-    //     ctx.font = '20px Arial';
-    //     ctx.textAlign = 'center';
-    //     ctx.fillText('Loading assets...', GAME_WIDTH / 2, GAME_HEIGHT / 2);
-    //     requestAnimationFrame(gameLoop);
-    //     return;
-    // }
+    if (!assetsLoaded) {
+        ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+        ctx.fillStyle = 'white';
+        ctx.font = '20px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Loading assets...', GAME_WIDTH / 2, GAME_HEIGHT / 2);
+        requestAnimationFrame(gameLoop);
+        return; // אל תמשיך לולאה עד שהכל נטען
+    }
+
 
     ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
