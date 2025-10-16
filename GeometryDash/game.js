@@ -52,7 +52,8 @@ const dragonImagePaths = [
     'img/dragon1.jpg',
     'img/dragon2.jpg',
     'img/dragon3.jpg',
-    'img/dragon4.jpg'
+    'img/dragon4.jpg',
+    'img/dragon5.jpg',
 ];
 
 let imagesLoadedCount = 0;
