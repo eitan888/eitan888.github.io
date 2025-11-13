@@ -56,9 +56,19 @@ const dragonImagePaths = [
     'img/dragon5.jpg',
 ];
 
+// --- Player Sprite ---
+const playerImage = new Image(); 
+playerImage.src = 'img/soldier.png'; 
 let imagesLoadedCount = 0;
-let totalImagesToLoad = dragonImagePaths.length;
+let totalImagesToLoad = dragonImagePaths.length + 1;
 let assetsLoaded = false; // דגל חדש לניהול טעינת נכסים
+
+function onImageLoad() {
+    imagesLoadedCount++;
+    if (imagesLoadedCount === totalImagesToLoad) {
+        assetsLoaded = true;
+    }
+}
 
 // טעינת כל תמונות הדרקון
 dragonImagePaths.forEach(path => {
@@ -81,6 +91,11 @@ dragonImagePaths.forEach(path => {
     dragonImages.push(img);
 });
 
+playerImage.onload = onImageLoad; // <<<--- קריאה לפונקציית העזר
+playerImage.onerror = () => {
+    console.error(`Failed to load image: ${playerImage.src}`);
+    onImageLoad(); // קריאה גם במקרה של שגיאה
+};
 
 
 let score = 0;
@@ -117,31 +132,30 @@ let isGravityReversed = false;
 
 let particles = [];
 
-// --- Player Sprite (דוגמה אם תרצה להוסיף מאוחר יותר) ---
-/*
-const playerSpriteSheet = new Image();
-playerSpriteSheet.src = 'player_sprites.png';
+// --- Player Animation Constants (מותאם ל-soldier.jpg) ---
 const PLAYER_FRAME_WIDTH = 50;
-const PLAYER_FRAME_HEIGHT = 60;
-const PLAYER_RUN_FRAMES = 4;
-const PLAYER_ANIMATION_SPEED = 5;
+const PLAYER_FRAME_HEIGHT = 112;
+const PLAYER_RUN_FRAMES_COUNT = 6; // כל 6 הפריימים משמשים לריצה
+const PLAYER_ANIMATION_SPEED = 5;  // 5 פריימים של המשחק לכל פריים אנימציה
 
-playerSpriteSheet.onload = function() { gameAssetsLoaded = true; };
-playerSpriteSheet.onerror = function() {
-    console.error("Could not load player sprite sheet!");
-    gameAssetsLoaded = true; // Or handle error differently
-};
-*/
+// קואורדינטות Y בתוך קובץ ה-Sprite Sheet
+const PLAYER_RUN_SPRITE_Y = 300;
+const PLAYER_JUMP_SPRITE_Y = 300; // השורה השנייה משמשת כ"קפיצה"
+const PLAYER_SOURCE_FRAME_HEIGHT = 400
+const SOURCE_FRAME_HEIGHT = 400;
 
 // --- Player ---
 // --- Player Object (גרסה מתוקנת ומלאה) ---
+// --- Player Object (גרסה משודרגת עם אנימציה) ---
 let player = {
-    // ... מאפיינים קיימים: x, width, height, velocityY וכו' ...
     x: 50,
-    width: PLAYER_FALLBACK_WIDTH,
-    height: PLAYER_FALLBACK_HEIGHT,
-    y: GROUND_HEIGHT - PLAYER_FALLBACK_HEIGHT,
+    // שימוש בקבועים החדשים של האנימציה
+    width: PLAYER_FRAME_WIDTH,
+    height: PLAYER_FRAME_HEIGHT,
+    y: GROUND_HEIGHT - PLAYER_FRAME_HEIGHT,
     velocityY: 0,
+    
+    // מאפיינים קיימים
     isJumping: false,
     jumpsMade: 0,
     maxJumps: 2,
@@ -151,96 +165,127 @@ let player = {
     isInvincible: false,
     invincibilityTimer: 0,
 
-    // --- פונקציית עדכון פיזיקה מתוקנת ---
+    // --- חדש: מאפייני אנימציה ---
+    spriteSheet: playerImage, // התמונה שטענו
+    currentFrame: 0,          // הפריים הנוכחי באנימציה (0, 1, 2...)
+    animationTimer: 0,        // מונה פנימי לתיאום מהירות האנימציה
+    // ----------------------------
+
     update: function() {
-        // 1. החלת כוח משיכה בהתאם למצב
+        // 1. פיזיקה (כמו קודם)
         this.velocityY += isGravityReversed ? -GRAVITY : GRAVITY;
         this.y += this.velocityY;
 
-
-        // 2. בדיקת התנגשות עם קרקע (רגילה או הפוכה)
+        // 2. התנגשות בקרקע/תקרה (כמו קודם)
         const landedOnGround = !isGravityReversed && (this.y + this.height >= GROUND_HEIGHT);
         const landedOnCeiling = isGravityReversed && (this.y <= 0);
 
         if (landedOnGround || landedOnCeiling) {
-            // אם נחת על הקרקע הרגילה, קבע אותו על הקרקע
-            if (landedOnGround) {
-                this.y = GROUND_HEIGHT - this.height;
-            }
-            // אם נחת על התקרה, קבע אותו על התקרה
-            if (landedOnCeiling) {
-                this.y = 0;
-            }
-            
-            // איפוס כל משתני הקפיצה והסיבוב
+            // ... (כל לוגיקת הנחיתה הקיימת, כולל איפוסים וחלקיקי אבק) ...
+            if (landedOnGround) this.y = GROUND_HEIGHT - this.height;
+            if (landedOnCeiling) this.y = 0;
+            // if (this.isJumping) playSound(sfxLand); // הפעל צליל נחיתה
             this.velocityY = 0;
             this.isJumping = false;
             this.jumpsMade = 0;
             this.isSpinning = false;
             this.rotation = 0;
-
-             if (gameFrame % 2 === 0) {
-            spawnDustParticle();
-        }
+            
+            if (gameFrame % 2 === 0) spawnDustParticle();
         }
 
-        // עדכון סיבוב
-        if (this.isSpinning) {
-            this.rotation += ROTATION_SPEED;
-        }
+        // 3. עדכון סיבוב (כמו קודם)
+        if (this.isSpinning) this.rotation += ROTATION_SPEED;
 
-        // עדכון אלמוות
+        // 4. עדכון אלמוות (כמו קודם)
         if (this.isInvincible) {
-            this.invincibilityTimer--;
-            if (this.invincibilityTimer <= 0) {
-                this.isInvincible = false;
+            // ...
+        }
+
+        // 5. --- חדש: עדכון לוגיקת האנימציה ---
+        this.updateAnimation(landedOnGround || landedOnCeiling);
+    },
+
+    updateAnimation: function(isOnGround) {
+        if (isOnGround) {
+            // אם על הקרקע -> הפעל אנימציית ריצה
+            this.animationTimer++;
+            if (this.animationTimer > PLAYER_ANIMATION_SPEED) {
+                this.animationTimer = 0;
+                this.currentFrame = (this.currentFrame + 1) % PLAYER_RUN_FRAMES_COUNT;
             }
+        } else {
+            // אם באוויר -> הצג פריים קפיצה בודד
+            // (נניח שפריים הקפיצה הוא הפריים הראשון בשורת הקפיצה)
+            this.currentFrame = 0; 
         }
     },
 
-    // --- פונקציית קפיצה מתוקנת ---
     jump: function() {
         if (this.jumpsMade < this.maxJumps) {
-            // כיוון הקפיצה תלוי בכוח המשיכה
+            // ... (כל לוגיקת הקפיצה הקיימת, כולל צליל וניצוצות) ...
             this.velocityY = isGravityReversed ? -JUMP_STRENGTH : JUMP_STRENGTH;
             this.isJumping = true;
             this.jumpsMade++;
             playSound(sfxJump);
             if (this.jumpsMade === 2) {
                 this.isSpinning = true;
-                // צור מספר ניצוצות ברגע הקפיצה הכפולה
-                for (let i = 0; i < 159; i++) { // כ-15 ניצוצות בכל קפיצה כפולה
-                    spawnSparkParticle();
-                }
+                for (let i = 0; i < 159; i++) spawnSparkParticle();
             }
         }
     },
 
-    // --- פונקציית ציור מתוקנת ---
     draw: function() {
-        ctx.save();
-        try {
-            ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
-            ctx.rotate(this.rotation);
-
-            // אם כוח המשיכה הפוך, הפוך את הציור אנכית
-            if (isGravityReversed) {
-                ctx.scale(1, -1);
-            }
-            
-            // לוגיקת הציור הרגילה
-            let originalAlpha = ctx.globalAlpha;
-            if (this.isInvincible) {
-                ctx.globalAlpha = (Math.floor(gameFrame / 8) % 2 === 0) ? 0.6 : 0.9;
-            }
-            ctx.fillStyle = PLAYER_COLOR;
-            ctx.fillRect(-this.width / 2, -this.height / 2, this.width, this.height);
-            ctx.globalAlpha = originalAlpha;
-            
-        } finally {
-            ctx.restore();
+    ctx.save();
+    try {
+        // --- 1. טרנספורמציות (הזזה, סיבוב, היפוך כוח כבידה) ---
+        ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
+        ctx.rotate(this.rotation); 
+        if (isGravityReversed) {
+            ctx.scale(1, -1);
         }
+
+        // --- 2. שקיפות (אלמוות) ---
+        let originalAlpha = ctx.globalAlpha;
+        if (this.isInvincible) {
+            ctx.globalAlpha = (Math.floor(gameFrame / 8) % 2 === 0) ? 0.6 : 0.9;
+        }
+
+        // --- 3. חישוב מיקום החיתוך (Source Coordinates) ---
+        let sx, sy;
+        
+        // הקבועים 133 ו-300 מייצגים את הרוחב והגובה של פריים בודד בתוך קובץ ה-JPG המקורי
+        const SOURCE_FRAME_WIDTH = 133;
+        const SOURCE_FRAME_HEIGHT = 300; 
+
+        if (this.isJumping) {
+            // אם קופצים, השתמש בשורת הקפיצה
+            sx = this.currentFrame * SOURCE_FRAME_WIDTH;
+            sy = PLAYER_JUMP_SPRITE_Y; // 300
+        } else {
+            // אם רצים, השתמש בשורת הריצה
+            sx = this.currentFrame * SOURCE_FRAME_WIDTH;
+            sy = PLAYER_RUN_SPRITE_Y;  // 0
+        }
+
+        // --- 4. ציור הפריים (Draw Image) ---
+        ctx.drawImage(
+            this.spriteSheet,
+            sx, sy,                          // נקודת X ו-Y להתחיל ממנה *לחתוך*
+            SOURCE_FRAME_WIDTH,              // רוחב החיתוך (133)
+            SOURCE_FRAME_HEIGHT,             // גובה החיתוך (300)
+            -this.width / 2,                 // איפה לצייר על הקנבס (X)
+            -this.height / 2,                // איפה לצייר על הקנבס (Y)
+            this.width,                      // רוחב הציור (Destination Width, שהוא 50)
+            this.height                      // גובה הציור (Destination Height, שהוא 112)
+        );
+        
+        ctx.globalAlpha = originalAlpha;
+        
+    } finally {
+        ctx.restore();
     }
+}
 };
 
 // פונקציית עזר לניגון אפקטים קוליים
@@ -602,6 +647,8 @@ function restartGame() {
     player.invincibilityCharges = 0;
     player.isInvincible = false;
     player.invincibilityTimer = 0;
+    player.currentFrame = 0;
+    player.animationTimer = 0;
     lastScoreAtChargeGrant = 0;
     updateInvincibilityChargesDisplay();
 
