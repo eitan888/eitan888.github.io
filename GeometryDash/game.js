@@ -133,13 +133,13 @@ let isGravityReversed = false;
 let particles = [];
 
 // --- Player Animation Constants (מותאם ל-soldier.jpg) ---
-const PLAYER_FRAME_WIDTH = 50;
-const PLAYER_FRAME_HEIGHT = 112;
-const PLAYER_RUN_FRAMES_COUNT = 6; // כל 6 הפריימים משמשים לריצה
+const PLAYER_FRAME_WIDTH = 80;
+const PLAYER_FRAME_HEIGHT = 140
+const PLAYER_RUN_FRAMES_COUNT = 3; // כל 6 הפריימים משמשים לריצה
 const PLAYER_ANIMATION_SPEED = 5;  // 5 פריימים של המשחק לכל פריים אנימציה
 
 // קואורדינטות Y בתוך קובץ ה-Sprite Sheet
-const PLAYER_RUN_SPRITE_Y = 300;
+const PLAYER_RUN_SPRITE_Y = 0;
 const PLAYER_JUMP_SPRITE_Y = 300; // השורה השנייה משמשת כ"קפיצה"
 const PLAYER_SOURCE_FRAME_HEIGHT = 400
 const SOURCE_FRAME_HEIGHT = 400;
@@ -199,7 +199,11 @@ let player = {
 
         // 4. עדכון אלמוות (כמו קודם)
         if (this.isInvincible) {
-            // ...
+            this.invincibilityTimer--;
+    if (this.invincibilityTimer <= 0) {
+        this.isInvincible = false;
+        this.invincibilityTimer = 0;
+    }
         }
 
         // 5. --- חדש: עדכון לוגיקת האנימציה ---
@@ -253,15 +257,22 @@ let player = {
 
         // --- 3. חישוב מיקום החיתוך (Source Coordinates) ---
         let sx, sy;
-        
-        // הקבועים 133 ו-300 מייצגים את הרוחב והגובה של פריים בודד בתוך קובץ ה-JPG המקורי
-        const SOURCE_FRAME_WIDTH = 133;
-        const SOURCE_FRAME_HEIGHT = 300; 
+
+
+        // console.log("Width")
+        // console.log(this.spriteSheet.width)
+        // console.log("Highet")
+        // console.log(this.spriteSheet.height)
+
+        // חישוב מידות פריים בודד: רוחב התמונה / 3 פריימים, גובה התמונה / 2 שורות
+        const SOURCE_FRAME_WIDTH = 360;
+        const SOURCE_FRAME_HEIGHT = 460;
+         
 
         if (this.isJumping) {
             // אם קופצים, השתמש בשורת הקפיצה
             sx = this.currentFrame * SOURCE_FRAME_WIDTH;
-            sy = PLAYER_JUMP_SPRITE_Y; // 300
+            sy = 431
         } else {
             // אם רצים, השתמש בשורת הריצה
             sx = this.currentFrame * SOURCE_FRAME_WIDTH;
