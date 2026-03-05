@@ -242,6 +242,7 @@ let player = {
     draw: function() {
     ctx.save();
     try {
+        
         // --- 1. טרנספורמציות (הזזה, סיבוב, היפוך כוח כבידה) ---
         ctx.translate(this.x + this.width / 2, this.y + this.height / 2);
         ctx.rotate(this.rotation); 
@@ -286,13 +287,14 @@ let player = {
             SOURCE_FRAME_WIDTH,              // רוחב החיתוך (133)
             SOURCE_FRAME_HEIGHT,             // גובה החיתוך (300)
             -this.width / 2,                 // איפה לצייר על הקנבס (X)
-            -this.height / 2,                // איפה לצייר על הקנבס (Y)
+            -this.height / 3,                // איפה לצייר על הקנבס (Y)
             this.width,                      // רוחב הציור (Destination Width, שהוא 50)
             this.height                      // גובה הציור (Destination Height, שהוא 112)
         );
         
         ctx.globalAlpha = originalAlpha;
-        
+        // ציור תיבת התנגשות (debug)
+     
     } finally {
         ctx.restore();
     }
@@ -516,14 +518,19 @@ function handleObstacles() {
         // ### סוף התיקון ###
         // ######################################################
 
-        // לוגיקת ההתנגשות נשארת זהה
-        if (
-            !player.isInvincible &&
-            player.x < obs.x + obs.width &&
-            player.x + player.width > obs.x &&
-            player.y < obs.y + obs.height &&
-            player.y + player.height > obs.y
-        ) {
+// תיבת התנגשות מדויקת - מותאמת לגוף החייל בלבד
+const hitboxX = player.x + 25;      // מתחיל יותר ימינה (אחרי הרובה)
+const hitboxY = player.y + 10;      // מתחיל קצת למטה מהראש
+const hitboxWidth = 40;             // רק רוחב הגוף (בלי הרובה)
+const hitboxHeight = player.height - 20; // כל הגובה פחות ראש קטן
+
+if (
+    !player.isInvincible &&
+    hitboxX < obs.x + obs.width &&
+    hitboxX + hitboxWidth > obs.x &&
+    hitboxY < obs.y + obs.height &&
+    hitboxY + hitboxHeight > obs.y
+) {
             gameOver();
         }
 
