@@ -768,3 +768,4 @@ function restartGame() {
 
 updateInvincibilityChargesDisplay(); // עדכון ראשוני לתצוגת המטענים
 requestAnimationFrame(gameLoop);
+
