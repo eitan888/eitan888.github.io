@@ -185,6 +185,7 @@ let player = {
             if (landedOnGround) this.y = GROUND_HEIGHT - this.height;
             if (landedOnCeiling) this.y = 0;
             // if (this.isJumping) playSound(sfxLand); // הפעל צליל נחיתה
+            if (this.isJumping) spawnLandingDustCloud(landedOnCeiling);
             this.velocityY = 0;
             this.isJumping = false;
             this.jumpsMade = 0;
@@ -394,6 +395,27 @@ function spawnDustParticle() {
         startLife: life,
         color: color
     });
+}
+
+function spawnLandingDustCloud(isCeiling) {
+    const DUST_CLOUD_COLORS = ['#d4c5a9', '#c8b89a', '#b8a888', '#e0d5c0', '#f0ebe0', '#ffffff', '#cfcfcf'];
+    const count = 800
+    const footX = player.x + player.width / 2;
+    const footY = isCeiling ? player.y : player.y + player.height;
+
+    for (let i = 0; i < count; i++) {
+        const side = Math.random() < 0.5 ? -1 : 1;
+        const spreadX = (Math.random() * player.width * 1.0) * side;
+        const size = Math.random() * 4 + 8;
+        const life = Math.random() * 30 + 80;
+        const vx = (Math.random() * 3.5 + 0.8) * side;
+        const vy = isCeiling ? (Math.random() * 2 + 0.8) : -(Math.random() * 3 + 0.8);
+        const color = DUST_CLOUD_COLORS[Math.floor(Math.random() * DUST_CLOUD_COLORS.length)];
+        particles.push({
+            x: footX + spreadX, y: footY,
+            vx, vy, size, life, startLife: life, color
+        });
+    }
 }
 
 // --- Obstacles ---
