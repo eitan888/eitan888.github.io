@@ -404,14 +404,14 @@ function spawnDustParticle() {
 
 function spawnLandingDustCloud(isCeiling) {
     const DUST_CLOUD_COLORS = ['#d4c5a9', '#c8b89a', '#b8a888', '#e0d5c0', '#f0ebe0', '#ffffff', '#cfcfcf'];
-    const count = 28;
+    const count = 800;
     const footX = player.x + player.width / 2;
     const footY = isCeiling ? player.y : player.y + player.height;
 
     for (let i = 0; i < count; i++) {
         const side = Math.random() < 0.5 ? -1 : 1;
         const spreadX = (Math.random() * player.width * 1.0) * side;
-        const size = Math.random() * 16 + 8;
+        const size = Math.random() * 4 + 8;
         const life = Math.random() * 30 + 80;
         const vx = (Math.random() * 3.5 + 0.8) * side;
         const vy = isCeiling ? (Math.random() * 2 + 0.8) : -(Math.random() * 3 + 0.8);
