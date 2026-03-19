@@ -2,7 +2,10 @@ const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 const scoreDisplay = document.getElementById('score');
 const invincibilityChargesDisplay = document.getElementById('invincibilityChargesDisplay');
-const INVINCIBILITY_DURATION_FRAMES = 5 * 60; // 5 שניות כפול 60 פריימים לשנייה (בערך)
+const INVINCIBILITY_DURATION_FRAMES = 5 * 60;
+const HIT_INVINCIBILITY_FRAMES = 3 * 60;
+const SCREEN_SHAKE_FRAMES = 3 * 60;
+const MAX_LIVES = 3;
 
 const sfxJump = new Audio('sfx/jump.wav');
 sfxJump.volume = 0.7;
@@ -105,6 +108,8 @@ let gameRunning = true;
 // let gameAssetsLoaded = false; // נראה שלא השתמשת בזה בסוף, אז נסיר אותו כרגע לפשטות
 
 let lastScoreAtChargeGrant = 0;
+let lives = MAX_LIVES;
+let screenShakeTimer = 0;
 
 // Background color settings
 const backgroundColors = [
@@ -399,14 +404,14 @@ function spawnDustParticle() {
 
 function spawnLandingDustCloud(isCeiling) {
     const DUST_CLOUD_COLORS = ['#d4c5a9', '#c8b89a', '#b8a888', '#e0d5c0', '#f0ebe0', '#ffffff', '#cfcfcf'];
-    const count = 800
+    const count = 28;
     const footX = player.x + player.width / 2;
     const footY = isCeiling ? player.y : player.y + player.height;
 
     for (let i = 0; i < count; i++) {
         const side = Math.random() < 0.5 ? -1 : 1;
         const spreadX = (Math.random() * player.width * 1.0) * side;
-        const size = Math.random() * 4 + 8;
+        const size = Math.random() * 16 + 8;
         const life = Math.random() * 30 + 80;
         const vx = (Math.random() * 3.5 + 0.8) * side;
         const vy = isCeiling ? (Math.random() * 2 + 0.8) : -(Math.random() * 3 + 0.8);
@@ -553,7 +558,7 @@ if (
     hitboxY < obs.y + obs.height &&
     hitboxY + hitboxHeight > obs.y
 ) {
-            gameOver();
+            takeDamage();
         }
 
         // הסרת מכשולים ועדכון ניקוד - נשאר ללא שינוי
@@ -613,13 +618,24 @@ function gameLoop() { // הסרתי את timestamp כי לא השתמשת בו
     }
 
 
-    ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    // רעידת מסך
+    ctx.save();
+    if (screenShakeTimer > 0) {
+        const intensity = Math.min(screenShakeTimer / 20, 1) * 7;
+        ctx.translate((Math.random() - 0.5) * intensity, (Math.random() - 0.5) * intensity);
+        screenShakeTimer--;
+    }
+
+    ctx.clearRect(-20, -20, GAME_WIDTH + 40, GAME_HEIGHT + 40);
 
     drawGround();
     handleParticles();
     player.update();
     player.draw();
     handleObstacles();
+    drawLives();
+
+    ctx.restore();
 
     gameFrame++;
     if (gameSpeed < 15) {
@@ -656,6 +672,30 @@ window.addEventListener('keydown', function(e) {
     }
 });
 
+// --- Lives ---
+function drawLives() {
+    const heartSize = 20;
+    const padding = 6;
+    for (let i = 0; i < MAX_LIVES; i++) {
+        ctx.font = heartSize + 'px Arial';
+        ctx.textAlign = 'left';
+        ctx.fillStyle = i < lives ? '#e74c3c' : '#555';
+        ctx.fillText('❤', 10 + i * (heartSize + padding), 28);
+    }
+}
+
+function takeDamage() {
+    lives--;
+    if (lives <= 0) {
+        gameOver();
+        return;
+    }
+    // פגיעה - הפוך לבלתי פגיע ורעד מסך
+    player.isInvincible = true;
+    player.invincibilityTimer = HIT_INVINCIBILITY_FRAMES;
+    screenShakeTimer = SCREEN_SHAKE_FRAMES;
+}
+
 // --- Game Over & Restart ---
 function gameOver() {
     gameRunning = false;
@@ -687,6 +727,8 @@ function restartGame() {
     player.invincibilityCharges = 0;
     player.isInvincible = false;
     player.invincibilityTimer = 0;
+    lives = MAX_LIVES;
+    screenShakeTimer = 0;
     player.currentFrame = 0;
     player.animationTimer = 0;
     lastScoreAtChargeGrant = 0;
